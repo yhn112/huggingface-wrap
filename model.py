@@ -1,5 +1,4 @@
 import torch
-import pytorch_lightning as pl
 from transformers.optimization import AdamW
 
 BERT_KEYS = ["input_ids", "token_type_ids", "attention_mask"]
