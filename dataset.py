@@ -14,7 +14,7 @@ class SimpleDataset(torch.utils.data.Dataset):
         self.X = X
         self.Y = Y
         self.device = device
-    
+
     def __len__(self):
         return len(self.X["input_ids"])
 
@@ -30,7 +30,7 @@ def make_dataset(tokenizer, data, has_labels=True, device="cpu",
                  answer_field="answer", pos_label=True):
     questions = [elem[first_key] for elem in data]
     passages = [elem[second_key] for elem in data]
-    X = tokenizer(text=questions,  text_pair=passages, truncation=True)
+    X = tokenizer(text=questions,  text_pair=passages, truncation=True, max_length=512)
     if has_labels:
         Y = torch.FloatTensor([int(elem[answer_field]==pos_label) for elem in data])
     else:
@@ -39,7 +39,7 @@ def make_dataset(tokenizer, data, has_labels=True, device="cpu",
 
 
 class OrderedBatchSampler(Sampler):
-    
+
     def __init__(self, data, batch_size, length_func=None, shuffle=True, random_state=187):
         if length_func is None:
             length_func = lambda x: 0

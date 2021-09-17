@@ -1,0 +1,4 @@
+transformers>=4.6.0
+jsonlines
+scikit-learn
+torch>=1.6.0

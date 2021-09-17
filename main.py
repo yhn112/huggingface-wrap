@@ -12,11 +12,13 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from sklearn.exceptions import UndefinedMetricWarning
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 import torch
-from transformers import BertModel, BertTokenizer, AutoModel, AutoTokenizer
+from transformers import BertModel, BertTokenizer, AutoModel, AutoTokenizer, AlbertTokenizerFast
 
 from dataset import make_dataset, make_dataloader
 from model import BertClassifier
 from read import read_infile
+from lib.models import LeanAlbertForPreTraining, LeanAlbertModel
+from lib import LeanAlbertConfig
 
 def update_metrics(metrics, answer, labels):
     probs = answer["probs"].detach().cpu().numpy()
@@ -50,7 +52,8 @@ argument_parser.add_argument("-A", "--answer_field", default="answer", type=str)
 argument_parser.add_argument("-o", "--output_file", default=None)
 argument_parser.add_argument("-l", "--load_file", default=None)
 argument_parser.add_argument("-s", "--save_file", default=None)
-argument_parser.add_argument("-m", "--model_name", default="bert-base-cased")
+argument_parser.add_argument("-c", "--model_config", default="config.json")
+argument_parser.add_argument("--tokenizer_path", default="tokenizer")
 argument_parser.add_argument("-T", "--train", action="store_false")
 argument_parser.add_argument("-e", '--nepochs', default=1, type=int)
 argument_parser.add_argument("--lr", default=1e-5, type=float)
@@ -75,8 +78,10 @@ if __name__ == '__main__':
     train_data = read_infile(args.train_file)
     dev_data = read_infile(args.dev_file)
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name, return_token_type_ids=True)
-    model = AutoModel.from_pretrained(args.model_name)
+    tokenizer = AlbertTokenizerFast.from_pretrained(args.tokenizer_path, return_token_type_ids=True)
+    config = LeanAlbertConfig.from_pretrained(args.model_config)
+    model = LeanAlbertModel(config)
+    model.resize_token_embeddings(len(tokenizer))
 
     train_dataset = make_dataset(tokenizer, train_data, pos_label=args.pos_label, 
                                  answer_field=args.answer_field, 
@@ -102,7 +107,7 @@ if __name__ == '__main__':
     best_score, best_weights = 0.0, None
 
     if args.load_file:
-        bert_classifier.load_state_dict(torch.load(args.load_file))
+        bert_classifier.model.load_state_dict(torch.load(args.load_file))
     if args.train:
         model.train()
         for epoch in range(args.nepochs):
@@ -154,4 +159,3 @@ if __name__ == '__main__':
                     "status": status, "prob": round(float(probs[i]), 2)
                 }
                 fout.write(json.dumps(to_output) + "\n")
-
